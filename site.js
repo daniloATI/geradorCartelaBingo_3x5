@@ -1,14 +1,14 @@
 function clickStart() {
-  const listaTotal = document.querySelector("#casasBingo").value.split("\n");
-  const qtdCartelas = parseInt(document.querySelector("#qtdCartelas").value, 0);
+  // Filtra linhas vazias para evitar erros no sorteio
+  const listaTotal = document.querySelector("#casasBingo").value.split("\n").filter(line => line.trim() !== "");
+  const qtdCartelas = parseInt(document.querySelector("#qtdCartelas").value, 10);
   const nomeBingo = document.querySelector("#nomeBingo").value;
   const imgCartela = document.querySelector("#imgCartela").value;
-  const tipoBingo = parseInt(
-    document.querySelector('input[name="tipoBingo"]:checked').value
-  );
+  const tipoBingo = parseInt(document.querySelector('input[name="tipoBingo"]:checked').value, 10);
 
-  if (!listaTotal || listaTotal.length < 30) {
-    alert("É necessário uma lista de, pelo menos, 30 items!");
+  // Para 3x5, precisamos de 15 casas. 14 itens + 1 imagem.
+  if (!listaTotal || listaTotal.length < 20) {
+    alert("É necessário uma lista de, pelo menos, 20 itens para gerar cartelas variadas!");
     return;
   }
 
@@ -25,89 +25,53 @@ function clickStart() {
 }
 
 function gerarValoresPadroes() {
-  const tipoBingo = parseInt(
-    document.querySelector('input[name="tipoBingo"]:checked').value
-  );
-
+  const tipoBingo = parseInt(document.querySelector('input[name="tipoBingo"]:checked').value, 10);
   const valores = document.querySelector("#casasBingo");
-
   if (tipoBingo === 1) {
-    // gerando 90 números das casas
-    valores.value = Array(90)
-      .fill()
-      .map((_, index) => index + 1)
-      .toString()
-      .split(",")
-      .join("\n");
+    valores.value = Array.from({ length: 90 }, (_, i) => i + 1).join("\n");
   } else {
     valores.value = "";
   }
 }
 
 function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 class Gerador {
   constructor(lista, imagem, tipoBingo) {
-    this.max = lista.length - 1;
-    this.listaBase = [];
+    this.listaBase = lista.map(item => new CasaCartela(item.trim()));
     this.tipoBingo = tipoBingo;
-    for (let item of lista) {
-      this.listaBase.push(new CasaCartela(item.trim()));
-    }
-    imagem = imagem ? imagem : "passaros.png";
-    this.casaImagem = new CasaCartela(null, imagem);
+    this.casaImagem = new CasaCartela(null, imagem || "passaros.png");
   }
 
-  GerarCartela = function () {
-    let usada = [];
-    let i = 0;
-    let retorno = [];
-    let j;
+  GerarCartela() {
+    let baseCopia = [...this.listaBase]; // Copia a lista para poder remover itens sorteados
+    let sorteados = [];
 
-    while (i < 15) {
-      do {
-        j = getRandomInt(0, this.max);
-      } while (usada[j] === true);
-
-      usada[j] = true;
-      retorno.push(this.listaBase[j]);
-      i++;
+    // Sorteia exatamente 14 itens únicos
+    while (sorteados.length < 14) {
+      let index = getRandomInt(0, baseCopia.length - 1);
+      sorteados.push(baseCopia.splice(index, 1)[0]); // Remove da cópia para não repetir
     }
 
-    // somente se for do tipo numérico
     if (this.tipoBingo === 1) {
-      // ordenar os números
-      retorno = retorno.sort(
-        (a, b) => parseInt(a.display, 10) - parseInt(b.display, 10)
-      );
+      sorteados.sort((a, b) => parseInt(a.display, 10) - parseInt(b.display, 10));
     }
-    // incluir a casa da imagem no centro da cartela
-    retorno.splice(5, 0, this.casaImagem);
-    return retorno;
-  };
+
+    // Insere a imagem no centro (índice 7 de uma lista de 15)
+    sorteados.splice(7, 0, this.casaImagem);
+    return sorteados;
+  }
 }
 
 class Cartela {
   constructor(_titulo, _casas) {
     this.titulo = _titulo;
-    this.casas = [[], [], []];
-    let i = 0;
-    let j = 0;
-    // cria a matriz bidimensional transposta para ordenar corretamente de cima para baixo
-    for (let y = 0; y < 5; y++) {
-      for (let x = y, c = 0; c < 3; x += 3, c++) {
-        this.casas[i][j++] = _casas[x];
-        if (j > 4) {
-          i++;
-          j = 0;
-        }
-
-        if (i > 4) break;
-      }
+    this.casas = [];
+    // Transforma a lista de 15 em uma matriz de 3 linhas e 5 colunas
+    for (let i = 0; i < 3; i++) {
+      this.casas.push(_casas.slice(i * 5, (i + 1) * 5));
     }
   }
 }
@@ -116,34 +80,26 @@ Cartela.prototype.genNode = function () {
   let container = document.createElement("div");
   container.classList.add("cartela");
   container.innerHTML = `
-        <h2 class="cartela-titulo">${this.titulo} </h2>
-            <div class ="cartela-corpo">
-            ${this.casas
-              .map(
-                (item, i) => `
+        <h2 class="cartela-titulo">${this.titulo}</h2>
+        <div class="cartela-corpo">
+            ${this.casas.map(linha => `
                 <div class="cartela-linha">
-                    ${item.map((casa, j) => `${casa.genTemplate()} `).join("")}
+                    ${linha.map(casa => casa.genTemplate()).join("")}
                 </div>
-            `
-              )
-              .join("")}
+            `).join("")}
         </div>`;
   return container;
 };
 
 class CasaCartela {
   constructor(valor, imagem) {
-    this.display = valor != null ? valor : imagem;
-    this.tipo = valor != null ? 1 : 2;
+    this.display = valor !== null ? valor : imagem;
+    this.tipo = valor !== null ? 1 : 2;
+  }
+  genTemplate() {
+    if (this.tipo === 1) return `<div class="cartela-casa">${this.display}</div>`;
+    return `<div class="cartela-casa cartela-casa-img"><img src='${this.display}' /></div>`;
   }
 }
 
-CasaCartela.prototype.genTemplate = function () {
-  if (this.tipo == 1) return `<div class="cartela-casa">${this.display} </div>`;
-  else
-    return `<div class ="cartela-casa cartela-casa-img"><img src='${this.display}' /></div>`;
-};
-
-document.addEventListener("DOMContentLoaded", function (event) {
-  gerarValoresPadroes();
-});
+document.addEventListener("DOMContentLoaded", () => gerarValoresPadroes());
