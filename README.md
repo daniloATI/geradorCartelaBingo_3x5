@@ -1,7 +1,6 @@
 # Gerador de Cartela de Bingo 3x5
 
-Atualizei o código para minha necessidade de fazer uma cartela menor, usei o Gemini para me auxiliar no código, não vou quebrar cabeça :)
-
+Atualizei o código para minha necessidade de fazer uma cartela menor, usei o Gemini para me auxiliar no código (vibe coding), não vou quebrar cabeça :)
 
 O projeto original pertece ao Douglas Fernandes Junior, abaixo o README.md original
 
