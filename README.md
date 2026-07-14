@@ -2,7 +2,7 @@
 
 Atualizei o código para minha necessidade de fazer uma cartela menor, usei o Gemini para me auxiliar no código (vibe coding), não vou quebrar cabeça :)
 
-O projeto original pertece ao Douglas Fernandes Junior, abaixo o README.md original
+O projeto original pertece ao Douglas Fernandes Junior, abaixo o README.md original 5x5
 
 --
 
